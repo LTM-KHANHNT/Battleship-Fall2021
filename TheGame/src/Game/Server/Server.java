@@ -38,7 +38,7 @@ public class Server {
         try {
 
             ss = new ServerSocket(port);
-            System.out.println("Server is ready on port 45371");
+            System.out.println("Server is ready on port " + port);
         } catch (IOException e) {
             e.printStackTrace();
         }

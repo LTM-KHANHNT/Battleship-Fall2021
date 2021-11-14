@@ -38,6 +38,7 @@ import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 public class ShipWreck extends Application {
     //PrimaryStage
@@ -77,21 +78,25 @@ public class ShipWreck extends Application {
 
     private Parent createContent() {
         BorderPane root = new BorderPane();
+
         root.setPrefSize(1000, 500);
-        Image img = new Image("Assets/pirateship.jpg", 1000, 500, false, false);
+        Image img = new Image("Assets/pirateship.jpg", 1000, 600, false, false);
         BackgroundImage view = new BackgroundImage(img, null, null, BackgroundPosition.DEFAULT, null);
         root.setBackground(new Background(view));
         VBox vBox = new VBox(20);
         VBox grAndTr = new VBox(20);
+        Image logo = new Image("Assets/logo.png", 180, 200, false, false);
         //Greeting
         Text greeting = new Text("Welcome to battleship, you have in total 7 ships, 2 ships 3 blocks" +
                 " 3 ships 2 blocks  and 2 ship 1 block");
 
         Text tutorial = new Text("Let'start by placing your ship vertical with left click, horizontal with right click and then START THE GAME!");
 
-
+        ImageView logoView = new ImageView(logo);
+        HBox topLayOut = new HBox(220);
         grAndTr.getChildren().addAll(greeting, tutorial);
-        root.setTop(grAndTr);
+        topLayOut.getChildren().addAll(grAndTr);
+        root.setTop(topLayOut);
 
 
         //Button
@@ -113,9 +118,9 @@ public class ShipWreck extends Application {
         Label portLB = new Label("Port");
         portLB.setTextFill(Color.WHITE);
         portBox.getChildren().addAll(portLB, portField);
-        vBox.getChildren().addAll(hostBox, portBox, play, connect);
+        vBox.getChildren().addAll(hostBox, portBox, play, connect, turn);
         //
-        turn.setFont(Font.font("Arial", 32));
+        turn.setFont(Font.font("Arial", 18));
         turn.setTextFill(Color.RED);
 
         enemyBoard = new Board(true, event -> {
@@ -186,7 +191,6 @@ public class ShipWreck extends Application {
                     size1.add(1);
                     vertical1.add(s.isVertical());
                     if (--shipsToPlace == 0) {
-
                         startGame();
                         play.setText("Play NOW");
                         play.setDisable(false);
@@ -209,7 +213,9 @@ public class ShipWreck extends Application {
         HBox hBox = new HBox(50, yourBoardwText, enemyBoardwText, vBox);
         hBox.setAlignment(Pos.CENTER);
         root.setCenter(hBox);
-        root.setBottom(turn);
+
+        root.setBottom(logoView);
+        BorderPane.setAlignment(logoView, Pos.TOP_RIGHT);
         return root;
     }
 
@@ -425,6 +431,12 @@ public class ShipWreck extends Application {
         PrimaryStage.setScene(scene);
         PrimaryStage.setResizable(false);
         PrimaryStage.show();
+        PrimaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent t) {
+                System.exit(0);
+            }
+        });
         music();
     }
 
