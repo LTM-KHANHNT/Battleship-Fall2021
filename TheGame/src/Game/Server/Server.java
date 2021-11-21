@@ -31,7 +31,7 @@ public class Server {
 
     private int enemy1X, enemy1Y, enemy2X, enemy2Y = -1;
 
-    public Server(int port) {
+    public Server(int port){
 
         this.numPlayers = 0;
         this.maxPlayers = 2;
@@ -42,7 +42,6 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        acceptConnections();
     }
 
     public void acceptConnections() {

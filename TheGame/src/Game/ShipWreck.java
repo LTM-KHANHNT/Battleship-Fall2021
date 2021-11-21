@@ -7,7 +7,13 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Random;
 import java.util.Vector;
 
@@ -50,7 +56,7 @@ public class ShipWreck extends Application {
     private String host = "localhost", port = "";
     private TextField hostField = new TextField(host);
     private TextField portField = new TextField(port);
-
+    private String timestamp;
     private int playerId;
     private Text connect = new Text();
     private Label turn = new Label("");
@@ -65,7 +71,8 @@ public class ShipWreck extends Application {
     private Vector<Integer> yPos2 = new Vector<>();
     private Vector<Integer> size2 = new Vector<>();
     private Vector<Boolean> vertical2 = new Vector<>();
-
+    private String username;
+    private long millis;
     private boolean running = false;
     private Board enemyBoard, playerBoard;
     private int enemyX, enemyY = -1;
@@ -78,7 +85,8 @@ public class ShipWreck extends Application {
 
     private Parent createContent() {
         BorderPane root = new BorderPane();
-
+        hostField.setDisable(true);
+        portField.setDisable(true);
         root.setPrefSize(1000, 500);
         Image img = new Image("Assets/pirateship.jpg", 1000, 600, false, false);
         BackgroundImage view = new BackgroundImage(img, null, null, BackgroundPosition.DEFAULT, null);
@@ -103,9 +111,16 @@ public class ShipWreck extends Application {
         play = new Button("You need to place your ships first");
         EventHandler<ActionEvent> playEvent = new EventHandler<ActionEvent>() {
             public void handle(ActionEvent e) {
-                host = hostField.getText();
-                port = portField.getText();
-                connectToServer();
+//                host = hostField.getText();
+//                port = portField.getText();
+                try {
+                    wts.sendStartBoard();
+                    play.setDisable(true);
+                    ourTurn = true;
+                    turn.setText("It's your turn");
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
             }
         };
         connect.setFill(Color.ORANGE);
@@ -148,6 +163,7 @@ public class ShipWreck extends Application {
                 root1.setPrefSize(1000, 500);
                 ImageView gameOver = new ImageView(new Image("Assets/gameOver/victory.png", 800, 100, false, false));
                 root1.setCenter(gameOver);
+                uploadMatchResult();
                 PrimaryStage.getScene().setRoot(root1);
             }
 
@@ -227,8 +243,9 @@ public class ShipWreck extends Application {
     //Server setup
     private void connectToServer() {
         try {
-            play.setDisable(true);
+            System.out.println("connect port" +port);
             socket = new Socket(host, Integer.parseInt(port.trim()));
+            System.out.println("after that");
             DataInputStream in = new DataInputStream(socket.getInputStream());
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
             playerId = in.readInt();
@@ -236,13 +253,10 @@ public class ShipWreck extends Application {
             System.out.println("You are player " + playerId);
             if (playerId == 1) {
                 connect.setText("Waiting for player 2 to connect");
-                ourTurn = true;
-                turn.setText("It's your turn");
             }
             wts = new WriteToServer(out);
             rfs = new ReadFromServer(in);
 
-            wts.sendStartBoard();
 
         } catch (NumberFormatException ex) {
             ex.printStackTrace();
@@ -421,11 +435,68 @@ public class ShipWreck extends Application {
         mediaPlayer.setVolume(0.06);
         mediaPlayer.play();
     }
+    public void set(String host, String port,String username){
+        this.port = port;
+        this.host = host;
+        this.username = username;
+        portField.setText(port);
+        hostField.setText(host);
+        connectToServer();
+
+    }
+
+    public Connection getConnection(){
+        Connection conn = null;
+        try {
+            String JDBC_DRIVER = "com.mysql.jdbc.Driver";
+            String DB_URL = "jdbc:mysql://26.174.20.128:3306/gamedb";
+            String USER = "root";
+            String PASS = "password";
+            Class.forName("com.mysql.jdbc.Driver");
+            System.out.println("Connecting to a selected database...");
+            conn = DriverManager.getConnection(DB_URL, USER, PASS);
+            System.out.println("Connected database successfully...");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return conn;
+    }
+
+    public void uploadMatchResult(){
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            String sql = "INSERT INTO gamedb.match (create_date,time_to_beat,user) VALUES (?,?,'"+username+"')";
+            PreparedStatement preparedStatement = conn.prepareStatement(sql);
+            preparedStatement.setString(1, timestamp);
+            preparedStatement.setString(2, ""+ (System.currentTimeMillis() - millis));
+            int result = preparedStatement.executeUpdate();
+            if (result==1){
+                String sql2 = "UPDATE user set user.scores = (user.scores + 1) WHERE user.username = ?";
+                PreparedStatement preparedStatement2 = conn.prepareStatement(sql2);
+                preparedStatement2.setString(1, username);
+                int result2 = preparedStatement2.executeUpdate();
+                if (result2==1){
+                    System.out.println("Success");
+                }
+            }
+            conn.close();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+
+    }
+
+
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        this.timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+        this.millis = System.currentTimeMillis();
         this.PrimaryStage = primaryStage;
-
         Scene scene = new Scene(createContent());
         PrimaryStage.setTitle("Battleship");
         PrimaryStage.setScene(scene);
